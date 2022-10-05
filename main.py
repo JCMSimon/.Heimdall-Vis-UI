@@ -22,7 +22,7 @@ def setup():
 def exit2():
 	for node in nodes:
 		print(f"id: {node}")
-		print("pos" + dpg.get_item_pos(str(node)))
+	# get position of node here and print it.
 
 def addrandom():
 	global editor
