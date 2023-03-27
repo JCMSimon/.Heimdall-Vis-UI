@@ -1,76 +1,67 @@
-import dearpygui.dearpygui as dpg
-from random import randint
-import random
+# problem. not all nodes can have a link in some way cause it odd
 
-def main():
-	dpg.create_context()
-	dpg.create_viewport()
-	dpg.setup_dearpygui()
-	dpg.show_viewport()
-	setup()
-	dpg.start_dearpygui()
-	exit2()
-	pass
+from dearpygui.dearpygui import get_item_children,draw_line,get_item_pos
 
-def setup():
-	with dpg.window(tag="main"):
-		dpg.add_button(label="Add Random Node",callback=addrandom)
-		dpg.add_button(label="Link 2 random Nodes",callback=linkrandom)
-		global editor
-		editor = dpg.add_node_editor(callback=link_callback)
-	dpg.set_primary_window("main", True)
+class Settings:
+	class link_with_relation:
+		min_length = 0
+		max_length = 0
+		color = "#FFFFFF"
+	class link_with_no_relation:
+		min_length = 0
+		max_length = 0
+		color = "#000000"
 
-def exit2():
-	for node in nodes:
-		print(f"id: {node}")
-		pos = dpg.get_item_pos(node)
-		print(f"id: {pos}")
-	# get position of node here and print it.
+class Link:
+	def __init__(self,origin,node_1,node_2,color,relevant=False) -> None:
+		self.color = color
+		self.node_1 = node_1
+		self.node_2 = node_2
 
-def addrandom():
-	global editor
-	# node_master = dpg.get_item_children(editor)[1]
-	# pos = [0,0]
-	# if node_master:
-	# 	for no in node_master:
-	# 		pos = dpg.get_item_pos(no)
-	# 		pos[0] += 80
-	# 		pos[1] += 10
+	def change_length(self,delta,origin) -> int:
+		# push the most outer node in direction of the line
+		# returns the length after changing it
+		pass
 
-	nodeid = dpg.add_node(parent=editor,
-						  tag=f"testNode{randint(0, 99999)}",
-						  label=f"testNode{randint(0, 99999)}",
-						#   draggable=False,
-						  pos=(dpg.get_item_rect_size(editor)[0] / 2,dpg.get_item_rect_size(editor)[1] / 2)
-						  )
-	nodes.append(nodeid)
-	print("Adding Random Node")
+	def get_length(self) -> int:
+		pass
 
-def linkrandom():
-	global editor
-	print("Linking 2 random Nodes")
-	if len(nodes) >= 2:
-		one = random.choice(nodes)
-		two = random.choice(nodes)
-		if one == two:
-			print("same shit")
-			linkrandom()
-		dpg.add_node_attribute(label="test",parent=one)
-		dpg.add_node_attribute(label="test2",parent=two,attribute_type=dpg.mvNode_Attr_Output)
-		print(dpg.get_item_type(one))
-		print(dpg.get_item_type(two))
-		dpg.add_node_link(one,two,parent=editor)
-	else:
-		print("not long enogh")
-		return
+	def draw(self) -> None:
+		draw_line(get_item_pos(self.node_1),get_item_pos(self.node_2),color=self.color)
 
-def link_callback(sender, app_data):
-    print(app_data,sender)
-	# app_data -> (link_id1, link_id2)
-    # dpg.add_node_link(app_data[0], app_data[1], parent=sender)
+	def get_outer_node(self,origin) -> int:
+		# returns the node that is further from the origin
+		pass
 
+class RelationalNodeUI:
+	"""A Relational UI (Wrapper) specifically made for [Heimdall](https://hdll.jcms.dev) based on the node editor from [dearpygui](https://github.com/hoffstadt/DearPyGui/issues)
+	"""
+	def __init__(self,node_editor_id,) -> int:
+		self.editor = node_editor_id
+		return self.editor
+
+	def get_editor_nodes(self) -> list[int]:
+		return get_item_children(self.editor)[children_node_index := 1]
+
+	def visualize_tree_data(self,root) -> None:
+		"""Heimdall specific"""
+		todo = root._children
+		while todo:
+			for node in todo:
+				for datapoint in node.data["data"]: #TODO gotta check the syntax on this!
+					print(
+						"create a node",
+						"create a link to the parrent and make it relevant",
+						"set the node to a random position inside 50% of the editor",)
+		print("enforce Link rules")
+
+	def create_unrelated_links(self) -> None:
+		# create a unrelated link between all nodes
+ 		pass
+
+	def create_node_from_datapoint(self):
+		# create a dpg node from the data
+		pass
 
 if __name__ == "__main__":
-	nodes = []
-	print("Testing UI")
-	main()
+	test = RelationalNodeUI(placeholder := 5)
