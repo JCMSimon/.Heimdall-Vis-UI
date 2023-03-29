@@ -1,19 +1,7 @@
-# problem. not all nodes can have a link in some way cause it odd
-
-from dearpygui.dearpygui import get_item_children,draw_line,get_item_pos
-
-class Settings:
-	class link_with_relation:
-		min_length = 0
-		max_length = 0
-		color = "#FFFFFF"
-	class link_with_no_relation:
-		min_length = 0
-		max_length = 0
-		color = "#000000"
+from dearpygui.dearpygui import draw_line,get_item_pos,get_item_rect_size
 
 class Link:
-	def __init__(self,origin,node_1,node_2,color,relevant=False) -> None:
+	def __init__(self,node_1,node_2,color) -> None:
 		self.color = color
 		self.node_1 = node_1
 		self.node_2 = node_2
@@ -40,28 +28,66 @@ class RelationalNodeUI:
 		self.editor = node_editor_id
 		return self.editor
 
-	def get_editor_nodes(self) -> list[int]:
-		return get_item_children(self.editor)[children_node_index := 1]
+	def setup(self) -> None:
+		self.origin = get_item_pos(self.editor)[0] + get_item_rect_size(self.editor)[0],get_item_pos(self.editor)[1] + get_item_rect_size(self.editor)[1]
 
-	def visualize_tree_data(self,root) -> None:
-		"""Heimdall specific"""
-		todo = root._children
-		while todo:
-			for node in todo:
-				for datapoint in node.data["data"]: #TODO gotta check the syntax on this!
-					print(
-						"create a node",
-						"create a link to the parrent and make it relevant",
-						"set the node to a random position inside 50% of the editor",)
-		print("enforce Link rules")
+	def visualize(self,root):
+		pass # idfk
 
-	def create_unrelated_links(self) -> None:
-		# create a unrelated link between all nodes
- 		pass
-
-	def create_node_from_datapoint(self):
-		# create a dpg node from the data
-		pass
 
 if __name__ == "__main__":
 	test = RelationalNodeUI(placeholder := 5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# self.data = {
+# 			"title":title,
+# 			"data":[],
+# 			"image":None,
+# 		}
+
+	# def get_editor_nodes(self) -> list[int]:
+	# 	return get_item_children(self.editor)[children_node_index := 1]
+
+# while self.todo:
+# 			for node in self.todo:
+# 				for dataField in node.data["data"]: # this might be wrong syntax. it should loop through data fields
+# 					for datatype,data in dataField.items():
+# 						plugins = self.pluginRegister.getPluginNamesByType(datatype)
+# 						results = []
+# 						for plugin in plugins:
+# 							try:
+# 								results.extend(self.pluginRegister.runPlugin(plugin,data))
+# 							except (TypeError,IndexError):
+# 								self.logger.infoMsg(f"{plugin} returned no results")
+# 				node._children.extend(results)
+# 				self.todo.extend(results)
+# 				self.todo.remove(node)
+# 		# Visualize whole Tree
+# 		self.nodeInterFace.visualize(self.root)
