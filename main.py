@@ -1,5 +1,4 @@
-import contextlib
-from dearpygui.dearpygui import get_item_children,draw_line,get_item_pos,get_item_rect_size,node,node_attribute,mvNode_Attr_Static,add_text
+from dearpygui.dearpygui import get_item_children,get_item_pos,get_item_rect_size,node,node_attribute,mvNode_Attr_Static,add_text,split_frame
 from math import sqrt
 
 class Link:
@@ -10,80 +9,125 @@ class Link:
 		self.node_2 = node_2
 
 	def change_length(self,delta) -> int:
+		"""
+		The function changes the length of a line by pushing the most outer node in the direction of the
+		line and returns the new length.
+
+		Args:
+		  delta: The parameter "delta" in the function "change_length" represents the amount by which the
+		length of a line needs to be changed. The function pushes the most outer node in the direction of
+		the line and returns the new length after the change.
+		"""
 		# push the most outer node in direction of the line
 		# returns the length after changing it
 		pass
 
 	def get_length(self) -> int:
-		dpg.split_frame()
-		try:
-			p = get_item_pos(self.node_1)
-			p1 = get_item_pos(self.node_2)
-			print(self.node_1,self.node_2)
-			print(p,p1)
-			return sqrt((p1[0] - p[0]) ** 2 + (p1[1] - p[1]) ** 2)
-		except Exception as e:
-			print("#####################")
-			print(e)
-			print("#####################")
+		"""
+		This function calculates the length of a line segment between two nodes using their positions.
+
+		Returns:
+		  The function `get_length` returns the length of the line segment between `node_1` and `node_2`
+		using the distance formula.
+		"""
+		return sqrt((get_item_pos(self.node_2)[0] - get_item_pos(self.node_1)[0]) ** 2 + (get_item_pos(self.node_2)[1] - get_item_pos(self.node_1)[1]) ** 2)
 
 	def draw(self) -> None:
-		self.link = draw_line(get_item_pos(self.node_1),get_item_pos(self.node_2),color=(0,0,0),parent=self.editor)
+		pass
 
 	def get_outer_node(self) -> int:
+		"""
+		This function returns the node that is further from the origin.
+		"""
 		# returns the node that is further from the origin
 		pass
 
-	def convertNodesToDPG(self):
+	def convertNodesToDPG(self) -> None:
+		"""
+		This function converts two nodes to DPG nodes using the createDPGNode function and assigns them to
+		self.node_1 and self.node_2.
+		"""
 		self.node_1 = createDPGNode(self.node_1,self.editor)
 		self.node_2 = createDPGNode(self.node_2,self.editor)
 
 class RelationalNodeUI:
 	"""A Relational UI (Wrapper) specifically made for [Heimdall](https://hdll.jcms.dev) based on the node editor from [dearpygui](https://github.com/hoffstadt/DearPyGui/issues)
 	"""
-	def __init__(self,node_editor_id,min_link_length=100,max_link_length=300) -> int:
+	def __init__(self,node_editor_id,min_link_length=100,max_link_length=300) -> None:
 		self.editor = node_editor_id
 		self.settings = {"max_link_length": max_link_length,"min_link_length": min_link_length}
 
-	def get_editor(self):
+	def get_editor(self) -> int:
+		"""
+		This function returns the editor of an object as an integer.
+
+		Returns:
+		  The method `get_editor` is returning an integer value which is the value of the attribute `editor`
+		of the object.
+		"""
 		return self.editor
 
-	def visualize(self,root):
-		#Create Links
+	def visualize(self,root) -> None:
 		self.createLinks(root)
-		#Convert Nodes to dpg
 		for link in self.links:
 			link.convertNodesToDPG()
-		#enforce links
 
-	def createLinks(self,root):
+	def createLinks(self,root) -> None:
+		"""
+		This function creates links between nodes in a tree structure.
+
+		Args:
+		  root: The root parameter is a node object that represents the root of a tree data structure. It is
+		the starting point for creating links between nodes in the tree.
+		"""
 		self.links = [Link(root,child,self.editor) for child in root._children]
 		for node in (todo := root._children): # im not sure if this works
 			self.links.extend(Link(node,child,self.editor) for child in node._children)
 			todo.extend(node._children)
 
 	def get_editor_nodes(self) -> list[int]:
-		return get_item_children(self.editor)[children_node_index := 1]
+		"""
+		This function returns a list of integer IDs representing the child nodes of a given editor node.
 
-	def _show_info(self):
-		for link in self.links:
-			print(link.get_length())
+		Returns:
+		  A list of integers representing the children nodes of the "editor" node. The implementation uses
+		the `get_item_children` function to retrieve the children nodes and then uses a Python walrus
+		operator to assign the index of the children list to a variable named `children_index`. Finally, the
+		function returns the children nodes by slicing the list starting from the index 1 (i.e., excluding
+		the first element
+		"""
+		return get_item_children(self.editor)[children_index := 1]
 
-	def draw(self):
-		for link in self.links:
-			link.draw()
 
 def createDPGNode(hdllnode,editor) -> int:
-	if hasattr(hdllnode,"dpgNodeID"):
-		return hdllnode.dpgNodeID
-	title = hdllnode.data["title"]
-	description = ''.join([value for field in hdllnode.data['data'] for key, value in field.items() if key != dp._internal.is_root_node])
-	with node(label=title,parent=editor) as dpgNodeId:
-		if description != "":
-			with node_attribute(attribute_type=mvNode_Attr_Static):
-				add_text(description)
-	hdllnode.dpgNodeID = dpgNodeId
-	return dpgNodeId
+	"""
+	This function creates a DPG node with a title and description and returns its ID.
+
+	Args:
+	  hdllnode: This is a variable that represents a node in a hierarchical data structure. It is used
+	to retrieve information about the node, such as its title and data.
+	  editor: The editor parameter is a reference to the editor window or interface where the DPG
+	node will be created.
+
+	Returns:
+	  an integer, which is the ID of a DPG node.
+	"""
+	try:
+		return hdllnode.dpgID
+	except AttributeError:
+		title = hdllnode.data["title"]
+		description = ''.join([value for field in hdllnode.data['data'] for key, value in field.items() if key != dp._internal.is_root_node]) #change import
+		with node(label=title,parent=editor) as nodeID:
+			if description != "":
+				with node_attribute(attribute_type=mvNode_Attr_Static):
+					add_text(description)
+		hdllnode.dpgID = nodeID
+		split_frame()
+		return nodeID
+
+
+
+
 
 if __name__ == "__main__":
 	from Node import Node
@@ -107,9 +151,7 @@ if __name__ == "__main__":
 	dpg.setup_dearpygui()
 	with dpg.window(label="Example Window") as wnd:
 		rng = RelationalNodeUI(dpg.add_node_editor(parent=wnd))
-		dpg.add_button(label="info",callback=lambda: rng._show_info())
 		dpg.add_button(label="vis",callback=lambda: rng.visualize(root))
-		# dpg.add_button(label="draw",callback=lambda: rng.draw())
 	dpg.set_primary_window(wnd,True)
 	dpg.show_viewport()
 	dpg.start_dearpygui()
