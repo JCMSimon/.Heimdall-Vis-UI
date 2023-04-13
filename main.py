@@ -15,9 +15,17 @@ class Link:
 		pass
 
 	def get_length(self) -> int:
-		p = get_item_pos(self.node_1)
-		p1 = get_item_pos(self.node_2)
-		return sqrt((p1[0] - p[0]) ** 2 + (p1[1] - p[1]) ** 2)
+		dpg.split_frame()
+		try:
+			p = get_item_pos(self.node_1)
+			p1 = get_item_pos(self.node_2)
+			print(self.node_1,self.node_2)
+			print(p,p1)
+			return sqrt((p1[0] - p[0]) ** 2 + (p1[1] - p[1]) ** 2)
+		except Exception as e:
+			print("#####################")
+			print(e)
+			print("#####################")
 
 	def draw(self) -> None:
 		self.link = draw_line(get_item_pos(self.node_1),get_item_pos(self.node_2),color=(0,0,0),parent=self.editor)
@@ -58,33 +66,24 @@ class RelationalNodeUI:
 		return get_item_children(self.editor)[children_node_index := 1]
 
 	def _show_info(self):
-		print(f"""
-{self.editor}
-{self.settings}
-{self.get_editor_nodes()}
-""")
-		with contextlib.suppress(Exception):
-			print(self.links)
-			for link in self.links:
-				print(link.node_1.data)
-				print(link.node_2.data)
-				print(link.origin)
-				print(link.get_length())
+		for link in self.links:
+			print(link.get_length())
 
 	def draw(self):
 		for link in self.links:
 			link.draw()
 
 def createDPGNode(hdllnode,editor) -> int:
-	if not hasattr(hdllnode,"transformedToDPGNode"):
-		title = hdllnode.data["title"]
-		description = ''.join([value for field in hdllnode.data['data'] for key, value in field.items() if key != dp._internal.is_root_node])
-		with node(label=title,parent=editor) as dpgNodeId:
-			if description != "":
-				with node_attribute(attribute_type=mvNode_Attr_Static):
-					add_text(description)
-		hdllnode.transformedToDPGNode = True
-		return dpgNodeId
+	if hasattr(hdllnode,"dpgNodeID"):
+		return hdllnode.dpgNodeID
+	title = hdllnode.data["title"]
+	description = ''.join([value for field in hdllnode.data['data'] for key, value in field.items() if key != dp._internal.is_root_node])
+	with node(label=title,parent=editor) as dpgNodeId:
+		if description != "":
+			with node_attribute(attribute_type=mvNode_Attr_Static):
+				add_text(description)
+	hdllnode.dpgNodeID = dpgNodeId
+	return dpgNodeId
 
 if __name__ == "__main__":
 	from Node import Node
@@ -110,7 +109,7 @@ if __name__ == "__main__":
 		rng = RelationalNodeUI(dpg.add_node_editor(parent=wnd))
 		dpg.add_button(label="info",callback=lambda: rng._show_info())
 		dpg.add_button(label="vis",callback=lambda: rng.visualize(root))
-		dpg.add_button(label="draw",callback=lambda: rng.draw())
+		# dpg.add_button(label="draw",callback=lambda: rng.draw())
 	dpg.set_primary_window(wnd,True)
 	dpg.show_viewport()
 	dpg.start_dearpygui()
