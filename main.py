@@ -4,23 +4,15 @@ from math import sqrt
 class Link:
 	def __init__(self,node_1,node_2,editor) -> None:
 		self.editor = editor
-		self.origin = get_item_pos(self.editor)[0] + get_item_rect_size(self.editor)[0],get_item_pos(self.editor)[1] + get_item_rect_size(self.editor)[1]
+		self.origin = get_item_pos(self.editor)[0] + get_item_rect_size(self.editor)[0] / 2,get_item_pos(self.editor)[1] + get_item_rect_size(self.editor)[1] / 2
 		self.node_1 = node_1
 		self.node_2 = node_2
 
 	def change_length(self,delta) -> int:
-		"""
-		The function changes the length of a line by pushing the most outer node in the direction of the
-		line and returns the new length.
-
-		Args:
-		  delta: The parameter "delta" in the function "change_length" represents the amount by which the
-		length of a line needs to be changed. The function pushes the most outer node in the direction of
-		the line and returns the new length after the change.
-		"""
-		# push the most outer node in direction of the line
+		slope = (get_item_pos(self.node_1)[1]-get_item_pos(self.node_2)[1])/(get_item_pos(self.node_1)[0]-get_item_pos(self.node_2)[0])
+		# m=(y2-y1)/(x2-x1)
+		# push the most inner node in direction of the line
 		# returns the length after changing it
-		pass
 
 	def get_length(self) -> int:
 		"""
@@ -39,8 +31,19 @@ class Link:
 		"""
 		This function returns the node that is further from the origin.
 		"""
-		# returns the node that is further from the origin
-		pass
+		if sqrt((get_item_pos(self.node_1)[0] - get_item_pos(self.node_1)[0]) ** 2 + (get_item_pos(self.origin)[1] - get_item_pos(self.origin)[1]) ** 2) > sqrt((get_item_pos(self.node_2)[0] - get_item_pos(self.node_2)[0]) ** 2 + (get_item_pos(self.origin)[1] - get_item_pos(self.origin)[1]) ** 2):
+			return self.node_1
+		else:
+			return self.node_2
+
+	def get_inner_node(self) -> int:
+		"""
+		This function returns the node that is closer to the origin.
+		"""
+		if sqrt((get_item_pos(self.node_1)[0] - get_item_pos(self.node_1)[0]) ** 2 + (get_item_pos(self.origin)[1] - get_item_pos(self.origin)[1]) ** 2) < sqrt((get_item_pos(self.node_2)[0] - get_item_pos(self.node_2)[0]) ** 2 + (get_item_pos(self.origin)[1] - get_item_pos(self.origin)[1]) ** 2):
+			return self.node_2
+		else:
+			return self.node_1
 
 	def convertNodesToDPG(self) -> None:
 		"""
@@ -115,9 +118,10 @@ def createDPGNode(hdllnode,editor) -> int:
 	try:
 		return hdllnode.dpgID
 	except AttributeError:
+		origin = get_item_pos(editor)[0] + get_item_rect_size(editor)[0] / 2,get_item_pos(editor)[1] + get_item_rect_size(editor)[1] / 2
 		title = hdllnode.data["title"]
 		description = ''.join([value for field in hdllnode.data['data'] for key, value in field.items() if key != dp._internal.is_root_node]) #change import
-		with node(label=title,parent=editor) as nodeID:
+		with node(label=title,parent=editor,pos=[origin[0] + range(-(get_item_rect_size(editor)[0] / 2),(get_item_rect_size(editor)[0] / 2)),origin[1] + range(-(get_item_rect_size(editor)[1] / 2),(get_item_rect_size(editor)[1] / 2))]) as nodeID:
 			if description != "":
 				with node_attribute(attribute_type=mvNode_Attr_Static):
 					add_text(description)
