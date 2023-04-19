@@ -1,5 +1,10 @@
-from dearpygui.dearpygui import get_item_children,get_item_pos,get_item_rect_size,node,node_attribute,mvNode_Attr_Static,add_text,split_frame
+from dearpygui.dearpygui import get_item_children,get_item_pos,get_item_rect_size,node,node_attribute,mvNode_Attr_Static,add_text,set_item_pos,split_frame,get_item_label
 from math import sqrt
+from random import choice
+from threading import Thread
+
+
+import time
 
 class Link:
 	def __init__(self,node_1,node_2,editor) -> None:
@@ -9,7 +14,45 @@ class Link:
 		self.node_2 = node_2
 
 	def change_length(self,delta) -> int:
-		slope = (get_item_pos(self.node_1)[1]-get_item_pos(self.node_2)[1])/(get_item_pos(self.node_1)[0]-get_item_pos(self.node_2)[0])
+		# slope = (get_item_pos(self.node_1)[1]-get_item_pos(self.node_2)[1])/(get_item_pos(self.node_1)[0]-get_item_pos(self.node_2)[0])
+		# # apply slope here
+		# Calculate the current distance between the nodes using the distance formula
+		current_dist = self.get_length()
+
+		# Calculate the slope of the line between the nodes
+		if get_item_pos(self.node_1)[0] == get_item_pos(self.node_2)[0]:
+			# If the line is vertical, set the slope to infinity
+			slope = float("inf")
+		else:
+			# Calculate the slope of the line using the rise over run formula
+			slope = (get_item_pos(self.node_1)[1]-get_item_pos(self.node_2)[1])/(get_item_pos(self.node_1)[0]-get_item_pos(self.node_2)[0])
+
+		# Apply the slope to calculate the new coordinates
+		if slope not in [0, float("inf")]:
+			# If the slope is neither 0 nor infinity, calculate the amount by which each coordinate should be adjusted
+			dx = delta / (slope**2 + 1)**0.5
+			dy = dx * slope
+		elif slope == 0:
+			# If the slope is 0, the line is horizontal, so only the x-coordinate needs to be adjusted
+			dx = delta
+			dy = 0
+		else:
+			# If the slope is infinity, the line is vertical, so only the y-coordinate needs to be adjusted
+			dx = 0
+			dy = delta
+		# Calculate the new distance between the nodes using the adjusted amounts
+		if current_dist > 0:
+			new_dist = current_dist + delta
+			new_x1 = get_item_pos(self.node_1)[0] + dx * (get_item_pos(self.node_1)[0]-get_item_pos(self.node_2)[0]) / current_dist
+			new_y1 = get_item_pos(self.node_1)[1] + dy * (get_item_pos(self.node_1)[1]-get_item_pos(self.node_2)[1]) / current_dist
+			new_x2 = get_item_pos(self.node_2)[0] + dx * (get_item_pos(self.node_2)[0]-get_item_pos(self.node_1)[0]) / current_dist
+			new_y2 = get_item_pos(self.node_2)[1] + dy * (get_item_pos(self.node_2)[1]-get_item_pos(self.node_1)[1]) / current_dist
+		else:
+			# If the current distance between the nodes is 0, set the new positions to their current positions
+			new_x1, new_y1 = get_item_pos(self.node_1)
+			new_x2, new_y2 = get_item_pos(self.node_2)
+		set_item_pos(self.node_1,[new_x1,new_y1])
+		set_item_pos(self.node_2,[new_x2,new_y2])
 
 	def get_length(self) -> int:
 		"""
@@ -71,6 +114,36 @@ class RelationalNodeUI:
 		self.createLinks(root)
 		for link in self.links:
 			link.convertNodesToDPG()
+		for node in self.get_editor_nodes():
+			self.randomiseNodePosition(node)
+
+	def start(self):
+		self.enforceRules = True
+		self.ruleThread = Thread(target=self._enforceRules,daemon=True)
+		self.ruleThread.start()
+
+	def stop(self):
+		self.enforceRules = False
+
+	def _enforceRules(self): #TODO Broken cause i GPT'd it lmao
+		while self.enforceRules:
+			for link in self.links:
+				if link.get_length() > self.settings["max_link_length"]:
+					link.change_length(-1)
+				elif link.get_length() < self.settings["max_link_length"]:
+					link.change_length(1)
+				else:
+					continue
+				print(link.get_length())
+
+	def randomiseNodePosition(self,nodeId):
+		origin = get_item_pos(self.editor)[0] + get_item_rect_size(self.editor)[0] / 2,get_item_pos(self.editor)[1] + get_item_rect_size(self.editor)[1] / 2
+		x = (origin[0] - (get_item_rect_size(nodeId)[0] / 2))
+		y = (origin[1] - (get_item_rect_size(nodeId)[1] / 2))
+		if get_item_label(nodeId) != "ROOT":
+			x += choice(range(-100,100))
+			y += choice(range(-100,100))
+		set_item_pos(nodeId,(x,y))
 
 	def createLinks(self,root) -> None:
 		"""
@@ -115,15 +188,13 @@ def createDPGNode(hdllnode,editor) -> int:
 	try:
 		return hdllnode.dpgID
 	except AttributeError:
-		origin = get_item_pos(editor)[0] + get_item_rect_size(editor)[0] / 2,get_item_pos(editor)[1] + get_item_rect_size(editor)[1] / 2
 		title = hdllnode.data["title"]
-		description = ''.join([value for field in hdllnode.data['data'] for key, value in field.items() if key != dp._internal.is_root_node]) #change import
-		with node(label=title,parent=editor,pos=[origin[0] + range(-(get_item_rect_size(editor)[0] / 2),(get_item_rect_size(editor)[0] / 2)),origin[1] + range(-(get_item_rect_size(editor)[1] / 2),(get_item_rect_size(editor)[1] / 2))]) as nodeID:
-			if description != "":
+		description = ''.join([value for field in hdllnode.data['data'] for key, value in field.items() if key != dp._internal.is_root_node])
+		with node(label=title,parent=editor,) as nodeID:
+			if description:
 				with node_attribute(attribute_type=mvNode_Attr_Static):
 					add_text(description)
 		hdllnode.dpgID = nodeID
-		split_frame()
 		return nodeID
 
 # RelationalUI = RelationalNodeUI(dpg.add_node_editor(parent=window))
@@ -143,7 +214,19 @@ if __name__ == "__main__":
 	root._children.append(testResult2)
 	testResult3 = Node("Example Result 3")
 	testResult3.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult4 = Node("Example Result 3")
+	testResult4.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult5 = Node("Example Result 3")
+	testResult5.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult6 = Node("Example Result 3")
+	testResult6.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult7 = Node("Example Result 3")
+	testResult7.addDataField(dp.username.google,"JustCallMeSimon")
 	testResult2._children.append(testResult3)
+	testResult2._children.append(testResult4)
+	testResult2._children.append(testResult5)
+	testResult2._children.append(testResult6)
+	testResult2._children.append(testResult7)
 	from dearpygui import dearpygui as dpg
 	dpg.create_context()
 	dpg.create_viewport(title="Hello World", width=640, height=480)
@@ -151,6 +234,8 @@ if __name__ == "__main__":
 	with dpg.window(label="Example Window") as wnd:
 		rng = RelationalNodeUI(dpg.add_node_editor(parent=wnd))
 		dpg.add_button(label="vis",callback=lambda: rng.visualize(root))
+		dpg.add_button(label="start",callback=lambda: rng.start())
+		dpg.add_button(label="stop",callback=lambda: rng.stop())
 	dpg.set_primary_window(wnd,True)
 	dpg.show_viewport()
 	dpg.start_dearpygui()
