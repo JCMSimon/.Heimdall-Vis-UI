@@ -14,45 +14,8 @@ class Link:
 		self.node_2 = node_2
 
 	def change_length(self,delta) -> int:
-		# slope = (get_item_pos(self.node_1)[1]-get_item_pos(self.node_2)[1])/(get_item_pos(self.node_1)[0]-get_item_pos(self.node_2)[0])
-		# # apply slope here
-		# Calculate the current distance between the nodes using the distance formula
-		current_dist = self.get_length()
+		slope = (get_item_pos(self.node_1)[1]-get_item_pos(self.node_2)[1])/(get_item_pos(self.node_1)[0]-get_item_pos(self.node_2)[0])
 
-		# Calculate the slope of the line between the nodes
-		if get_item_pos(self.node_1)[0] == get_item_pos(self.node_2)[0]:
-			# If the line is vertical, set the slope to infinity
-			slope = float("inf")
-		else:
-			# Calculate the slope of the line using the rise over run formula
-			slope = (get_item_pos(self.node_1)[1]-get_item_pos(self.node_2)[1])/(get_item_pos(self.node_1)[0]-get_item_pos(self.node_2)[0])
-
-		# Apply the slope to calculate the new coordinates
-		if slope not in [0, float("inf")]:
-			# If the slope is neither 0 nor infinity, calculate the amount by which each coordinate should be adjusted
-			dx = delta / (slope**2 + 1)**0.5
-			dy = dx * slope
-		elif slope == 0:
-			# If the slope is 0, the line is horizontal, so only the x-coordinate needs to be adjusted
-			dx = delta
-			dy = 0
-		else:
-			# If the slope is infinity, the line is vertical, so only the y-coordinate needs to be adjusted
-			dx = 0
-			dy = delta
-		# Calculate the new distance between the nodes using the adjusted amounts
-		if current_dist > 0:
-			new_dist = current_dist + delta
-			new_x1 = get_item_pos(self.node_1)[0] + dx * (get_item_pos(self.node_1)[0]-get_item_pos(self.node_2)[0]) / current_dist
-			new_y1 = get_item_pos(self.node_1)[1] + dy * (get_item_pos(self.node_1)[1]-get_item_pos(self.node_2)[1]) / current_dist
-			new_x2 = get_item_pos(self.node_2)[0] + dx * (get_item_pos(self.node_2)[0]-get_item_pos(self.node_1)[0]) / current_dist
-			new_y2 = get_item_pos(self.node_2)[1] + dy * (get_item_pos(self.node_2)[1]-get_item_pos(self.node_1)[1]) / current_dist
-		else:
-			# If the current distance between the nodes is 0, set the new positions to their current positions
-			new_x1, new_y1 = get_item_pos(self.node_1)
-			new_x2, new_y2 = get_item_pos(self.node_2)
-		set_item_pos(self.node_1,[new_x1,new_y1])
-		set_item_pos(self.node_2,[new_x2,new_y2])
 
 	def get_length(self) -> int:
 		"""
@@ -134,7 +97,6 @@ class RelationalNodeUI:
 					link.change_length(1)
 				else:
 					continue
-				print(link.get_length())
 
 	def randomiseNodePosition(self,nodeId):
 		origin = get_item_pos(self.editor)[0] + get_item_rect_size(self.editor)[0] / 2,get_item_pos(self.editor)[1] + get_item_rect_size(self.editor)[1] / 2
