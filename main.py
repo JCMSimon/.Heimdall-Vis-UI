@@ -10,9 +10,6 @@ class Link:
 
 	def change_length(self,delta) -> int:
 		slope = (get_item_pos(self.node_1)[1]-get_item_pos(self.node_2)[1])/(get_item_pos(self.node_1)[0]-get_item_pos(self.node_2)[0])
-		# m=(y2-y1)/(x2-x1)
-		# push the most inner node in direction of the line
-		# returns the length after changing it
 
 	def get_length(self) -> int:
 		"""
@@ -132,5 +129,28 @@ def createDPGNode(hdllnode,editor) -> int:
 # RelationalUI = RelationalNodeUI(dpg.add_node_editor(parent=window))
 # nodeEditor = RelationalUI.get_editor()
 
-
-
+# Test case
+if __name__ == "__main__":
+	from Node import Node
+	from Data import datapoints as dp
+	root = Node("ROOT")
+	root.addDataField(dp._internal.is_root_node,True)
+	testResult = Node("Example Result")
+	testResult.addDataField(dp.username.discord,"JCMS#0557")
+	root._children.append(testResult)
+	testResult2 = Node("Example Result 2")
+	testResult2.addDataField(dp.username.youtube,"JCMS_")
+	root._children.append(testResult2)
+	testResult3 = Node("Example Result 3")
+	testResult3.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult2._children.append(testResult3)
+	from dearpygui import dearpygui as dpg
+	dpg.create_context()
+	dpg.create_viewport(title="Hello World", width=640, height=480)
+	dpg.setup_dearpygui()
+	with dpg.window(label="Example Window") as wnd:
+		rng = RelationalNodeUI(dpg.add_node_editor(parent=wnd))
+		dpg.add_button(label="vis",callback=lambda: rng.visualize(root))
+	dpg.set_primary_window(wnd,True)
+	dpg.show_viewport()
+	dpg.start_dearpygui()
