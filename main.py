@@ -14,29 +14,7 @@ class Link:
 		self.node_2 = node_2
 
 	def change_length(self,delta) -> int:
-		node2 = self.get_outer_node()
-		node1 = self.get_inner_node()
-		angle = atan2(get_item_pos(node2)[1] - get_item_pos(node1)[1], get_item_pos(node2)[0] - get_item_pos(node1)[0])
-		x = get_item_pos(node1)[0] + self.get_length() + delta * cos(angle)
-		y = get_item_pos(node1)[1] + self.get_length() + delta * sin(angle)
-		print(x,y)
-		set_item_pos(node2,[x,y])
-
-	#   angle = math.atan2(node2[1] - node1[1], node2[0] - node1[0])
-    # node2_new = (node1[0] + new_distance * math.cos(angle),
-    #              node1[1] + new_distance * math.sin(angle))
-
-
-		# try:
-		# 	slope = (get_item_pos(self.node_1)[1]-get_item_pos(self.node_2)[1])/(get_item_pos(self.node_1)[0]-get_item_pos(self.node_2)[0])
-		# except ZeroDivisionError:
-		# 	slope = 0
-		# print(slope)
-		# node = self.get_outer_node()
-		# x = get_item_pos(node)[0] + delta
-		# y = get_item_pos(node)[1] + (delta * slope)
-		# set_item_pos(node,[x,y])
-		# return self.get_length()
+		pass
 
 	def get_length(self) -> int:
 		return abs(sqrt((get_item_pos(self.node_2)[0] - get_item_pos(self.node_1)[0]) ** 2 + (get_item_pos(self.node_2)[1] - get_item_pos(self.node_1)[1]) ** 2))
