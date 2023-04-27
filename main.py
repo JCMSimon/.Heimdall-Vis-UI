@@ -1,15 +1,14 @@
 from dearpygui.dearpygui import get_item_children,get_item_pos,get_item_rect_size,node,node_attribute,mvNode_Attr_Static,add_text,set_item_pos,get_item_label,set_value
-from math import sqrt,atan2,cos,sin
+from math import sqrt,atan2,cos,sin,pi
 from random import choice
 from threading import Thread
-
 
 import time
 
 class Link:
 	def __init__(self,node_1,node_2,editor) -> None:
 		self.editor = editor
-		self.origin = get_item_pos(self.editor)[0] + get_item_rect_size(self.editor)[0] / 2,get_item_pos(self.editor)[1] + get_item_rect_size(self.editor)[1] / 2
+		self.origin = get_item_pos(self.editor)[1] + get_item_rect_size(self.editor)[1] / 2,get_item_pos(self.editor)[0] + get_item_rect_size(self.editor)[0] / 2
 		self.node_1 = node_1
 		self.node_2 = node_2
 
@@ -17,31 +16,27 @@ class Link:
 		pass
 
 	def get_length(self) -> int:
-		return abs(sqrt((get_item_pos(self.node_2)[0] - get_item_pos(self.node_1)[0]) ** 2 + (get_item_pos(self.node_2)[1] - get_item_pos(self.node_1)[1]) ** 2))
+		return sqrt((get_item_pos(self.node_2)[0] - get_item_pos(self.node_1)[0]) ** 2 + (get_item_pos(self.node_2)[1] - get_item_pos(self.node_1)[1]) ** 2)
 
 	def draw(self) -> None:
 		pass
 
-	def get_outer_node(self) -> int:
-		if sqrt((self.origin[0] - get_item_pos(self.node_1)[0]) ** 2 + (self.origin[1] - get_item_pos(self.node_1)[1]) ** 2) > sqrt((self.origin[0] - get_item_pos(self.node_2)[0]) ** 2 + (self.origin[1] - get_item_pos(self.node_2)[1]) ** 2):
-			return self.node_1
-		else:
-			return self.node_2
+	def get_outer_node(self):
+		pass
 
-	def get_inner_node(self) -> int:
-		if sqrt((self.origin[0] - get_item_pos(self.node_1)[0]) ** 2 + (self.origin[1] - get_item_pos(self.node_1)[1]) ** 2) > sqrt((self.origin[0] - get_item_pos(self.node_2)[0]) ** 2 + (self.origin[1] - get_item_pos(self.node_2)[1]) ** 2):
-			return self.node_2
-		else:
-			return self.node_1
+	def get_inner_node(self):
+		pass
 
 	def convertNodesToDPG(self) -> None:
 		self.node_1 = createDPGNode(self.node_1,self.editor)
 		self.node_2 = createDPGNode(self.node_2,self.editor)
 
+
+
 class RelationalNodeUI:
 	"""A Relational UI (Wrapper) specifically made for [Heimdall](https://hdll.jcms.dev) based on the node editor from [dearpygui](https://github.com/hoffstadt/DearPyGui/issues)
 	"""
-	def __init__(self,node_editor_id,min_link_length=100,max_link_length=300) -> None:
+	def __init__(self,node_editor_id,min_link_length=200,max_link_length=300) -> None:
 		self.editor = node_editor_id
 		self.settings = {"max_link_length": max_link_length,"min_link_length": min_link_length}
 
@@ -66,8 +61,8 @@ class RelationalNodeUI:
 	def _enforceRules(self):
 		while self.enforceRules:
 			for link in self.links:
-				time.sleep(0.05)
 				print(link.get_length())
+				# time.sleep(0.05)
 				if link.get_length() > self.settings["max_link_length"]:
 					link.change_length(-1)
 				elif link.get_length() < self.settings["min_link_length"]:
@@ -129,6 +124,8 @@ if __name__ == "__main__":
 			is_root_node = "is_root_node"
 		class username:
 			discord = "JCMS#0557"
+			youtube = "JustCallMeSimon"
+			google = "JCMS"
 
 	class Node():
 		def __init__(self,title,color=None,debug=False,_is_root=False) -> None:
@@ -149,24 +146,24 @@ if __name__ == "__main__":
 	testResult = Node("Example Result")
 	testResult.addDataField(dp.username.discord,"JCMS#0557")
 	root._children.append(testResult)
-	# testResult2 = Node("Example Result 2")
-	# testResult2.addDataField(dp.username.youtube,"JCMS_")
-	# root._children.append(testResult2)
-	# testResult3 = Node("Example Result 3")
-	# testResult3.addDataField(dp.username.google,"JustCallMeSimon")
-	# testResult4 = Node("Example Result 3")
-	# testResult4.addDataField(dp.username.google,"JustCallMeSimon")
-	# testResult5 = Node("Example Result 3")
-	# testResult5.addDataField(dp.username.google,"JustCallMeSimon")
-	# testResult6 = Node("Example Result 3")
-	# testResult6.addDataField(dp.username.google,"JustCallMeSimon")
-	# testResult7 = Node("Example Result 3")
-	# testResult7.addDataField(dp.username.google,"JustCallMeSimon")
-	# testResult2._children.append(testResult3)
-	# testResult2._children.append(testResult4)
-	# testResult2._children.append(testResult5)
-	# testResult2._children.append(testResult6)
-	# testResult2._children.append(testResult7)
+	testResult2 = Node("Example Result 2")
+	testResult2.addDataField(dp.username.youtube,"JCMS_")
+	root._children.append(testResult2)
+	testResult3 = Node("Example Result 3")
+	testResult3.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult4 = Node("Example Result 3")
+	testResult4.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult5 = Node("Example Result 3")
+	testResult5.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult6 = Node("Example Result 3")
+	testResult6.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult7 = Node("Example Result 3")
+	testResult7.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult2._children.append(testResult3)
+	testResult2._children.append(testResult4)
+	testResult2._children.append(testResult5)
+	testResult2._children.append(testResult6)
+	testResult2._children.append(testResult7)
 	from dearpygui import dearpygui as dpg
 	dpg.create_context()
 	dpg.create_viewport(title="Hello World", width=640, height=480)
