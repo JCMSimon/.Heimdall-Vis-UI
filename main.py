@@ -1,7 +1,7 @@
 from dearpygui.dearpygui import get_item_children,get_item_pos,get_item_rect_size,node,node_attribute,mvNode_Attr_Static,add_text,set_item_pos,get_item_label,set_value
-from math import sqrt,pi
+from math import sqrt
 from random import choice
-# from threading import Thread
+from threading import Thread
 
 import time
 
@@ -15,13 +15,17 @@ class Link:
 	def change_length(self,delta):
 		x,y = getItemMiddle(self.node_1)
 		x1,y1 = getItemMiddle(self.node_2)
-		slope =  (y1-y)/(x1-x)
-		if x1 < x and y1 < y or (x1 <= x or y1 >= y) and x1 < x and y1 > y:
-			new_y = (y1 + delta * slope) - get_item_rect_size(self.node_2)[1]/2
-			new_x = (x1 + delta) - get_item_rect_size(self.node_2)[0]/2
-		elif x1 > x and y1 < y or x1 > x and y1 > y:
-			new_y = (y1 - delta * slope) - get_item_rect_size(self.node_2)[1]/2
-			new_x = (x1 - delta) - get_item_rect_size(self.node_2)[0]/2
+		try:
+			slope =  (y1-y)/(x1-x)
+		except ZeroDivisionError:
+			print("idk")
+		else:
+			if x1 < x and y1 < y or (x1 <= x or y1 >= y) and x1 < x and y1 > y:
+				new_y = (y1 + delta * slope) - get_item_rect_size(self.node_2)[1]/2
+				new_x = (x1 + delta) - get_item_rect_size(self.node_2)[0]/2
+			elif x1 > x and y1 < y or x1 > x and y1 > y:
+				new_y = (y1 - delta * slope) - get_item_rect_size(self.node_2)[1]/2
+				new_x = (x1 - delta) - get_item_rect_size(self.node_2)[0]/2
 		set_item_pos(self.node_2,[new_x,new_y])
 
 	def get_length(self) -> int:
@@ -34,6 +38,7 @@ class RelationalNodeUI:
 	"""
 	def __init__(self,node_editor_id) -> None:
 		self.editor = node_editor_id
+		self.settings = {"max_link_length": 150,"min_link_length": 100}
 
 	def get_editor(self) -> int:
 		return self.editor
@@ -42,29 +47,11 @@ class RelationalNodeUI:
 		self.createLinks(root)
 		for node in self.get_editor_nodes():
 			self.randomiseNodePositions(node)
-		# while True:
-		# 	time.sleep(0.05)
-		# 	self.links[0].change_length(1)
+		time.sleep(5)
+		while True:
+			self.links[0].change_length(30)
+			time.sleep(0.05)
 
-	# def start(self):
-	# 	self.enforceRules = True
-	# 	self.ruleThread = Thread(target=self._enforceRules,daemon=True)
-	# 	self.ruleThread.start()
-
-	# def stop(self):
-	# 	self.enforceRules = False
-
-	# def _enforceRules(self):
-	# 	while self.enforceRules:
-	# 		for link in self.links:
-	# 			print(link.get_length())
-	# 			if link.get_length() > self.settings["max_link_length"]:
-	# 				link.change_length(-1)
-	# 			elif link.get_length() < self.settings["min_link_length"]:
-	# 				link.change_length(1)
-	# 			else:
-	# 				continue
-	# 	return
 
 	def randomiseNodePositions(self,nodeId):
 		origin = get_item_pos(self.editor)[0] + get_item_rect_size(self.editor)[0] / 2,get_item_pos(self.editor)[1] + get_item_rect_size(self.editor)[1] / 2
@@ -158,8 +145,6 @@ if __name__ == "__main__":
 	with dpg.window(label="Example Window") as wnd:
 		rng = RelationalNodeUI(dpg.add_node_editor(parent=wnd,minimap=True))
 		dpg.add_button(parent=wnd,label="vis",callback=lambda: rng.visualize(root))
-		dpg.add_button(parent=wnd,label="away",callback=lambda: rng.links[0].change_length(-10))
-		dpg.add_button(parent=wnd,label="here",callback=lambda: rng.links[0].change_length(10))
 	dpg.set_primary_window(wnd,True)
 	dpg.show_viewport()
 	dpg.start_dearpygui()
