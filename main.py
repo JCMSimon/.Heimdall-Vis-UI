@@ -1,37 +1,27 @@
-from dearpygui.dearpygui import get_item_children,get_item_pos,get_item_rect_size,node,node_attribute,mvNode_Attr_Static,add_text,set_item_pos,get_item_label
+from dearpygui.dearpygui import draw_line,draw_arrow,get_item_configuration,get_item_pos,get_item_rect_size,get_item_label,get_item_children,set_item_pos,node,node_attribute,mvNode_Attr_Static,add_text,delete_item
 from math import sqrt
 import time
 import threading
 from random import choice
 
 class Link:
-	def __init__(self,node_1,node_2,node_editor,child_link=False) -> None:
+	def __init__(self,node_1,node_2,node_editor,child_link=False,root_link=False) -> None:
 		self.child_link = child_link
+		self.root_link = root_link
 		self.node_1 = createDPGNode(node_1,node_editor) # Always the Parent node (for now)
 		self.node_2 = createDPGNode(node_2,node_editor)
 
 	def draw(self,drawList):
-		color = (255, 0, 0, 255) if self.child_link else (255, 255, 255, 255)
 		#instead of drawing into the middle draw to the closest edge that is in direction of link. (idk how yet lmfao)
-		return dpg.draw_arrow(getItemMiddle(self.node_2),getItemMiddle(self.node_1),parent=drawList,color=color,thickness=3)
-
-	def change_length(self,delta):
-		x,y = getItemMiddle(self.node_1)
-		x1,y1 = getItemMiddle(self.node_2)
-		try:
-			slope =  (y1-y)/(x1-x)
-		except ZeroDivisionError:
-			return
+		if self.child_link:
+			return draw_line(getItemMiddle(self.node_2),getItemMiddle(self.node_1),parent=drawList,color=(255,0,0),thickness=1)
+		elif self.root_link:
+			return draw_line(getItemMiddle(self.node_2),getItemMiddle(self.node_1),parent=drawList,color=(0,255,0),thickness=1)
 		else:
-			if x1 < x and y1 < y or (x1 <= x or y1 >= y) and x1 < x and y1 > y:
-				new_y = (y1 - delta * slope) - get_item_rect_size(self.node_2)[1]/2
-				new_x = (x1 - delta) - get_item_rect_size(self.node_2)[0]/2
-			elif x1 > x and y1 < y or x1 > x and y1 > y:
-				new_y = (y1 + delta * slope) - get_item_rect_size(self.node_2)[1]/2
-				new_x = (x1 + delta) - get_item_rect_size(self.node_2)[0]/2
-			else:
-				return
-		set_item_pos(self.node_2,[new_x,new_y])
+			return draw_arrow(getItemMiddle(self.node_2),getItemMiddle(self.node_1),parent=drawList,color=(255,255,255),thickness=3)
+
+	def change_length(self,delta,dl=None):
+		pass
 
 	def get_length(self) -> int:
 		x,y = getItemMiddle(self.node_1)
@@ -61,6 +51,13 @@ class RelationalNodeUI:
 		self.drawThread.start()
 		self.dragThread.start()
 
+		while True:
+			for link in self.links:
+				if not link.child_link and not link.root_link:
+					link.change_length(1,dl=self.drawList)
+					time.sleep(0.05,)
+
+
 	def randomiseNodePositions(self):
 		for nodeId in self.get_editor_nodes():
 			origin = get_item_pos(self.editor)[0] + get_item_rect_size(self.editor)[0] / 2,get_item_pos(self.editor)[1] + get_item_rect_size(self.editor)[1] / 2
@@ -72,11 +69,18 @@ class RelationalNodeUI:
 			set_item_pos(nodeId,(x,y))
 
 	def createLinks(self,root) -> None:
+		ListOfChildren = [root._children]
 		self.links = [Link(root,child,self.editor) for child in root._children]
-		todo = root._children
-		for node in (todo):
+		todo = []
+		todo.extend(root._children)
+		for node in todo:
+			if len(node._children) >= 2:
+				ListOfChildren.append(node._children)
 			self.links.extend(Link(node,child,self.editor) for child in node._children)
+			self.links.append(Link(node,root,self.editor,root_link=True))
 			todo.extend(node._children)
+		for list in ListOfChildren:
+			self.links.extend(Link(list[index], list[index + 1], self.editor, child_link=True) for index in range(len(list) - 1))
 
 	def get_editor_nodes(self) -> list[int]:
 		return get_item_children(self.editor)[children_index := 1]
@@ -117,19 +121,6 @@ def getNodeByPosition(nodes,mousepos):
 			return nodeID
 	return None
 
-	# for item in dpg.get_item_children(ne)[1]}
-	# 	nodeBoxes = {item:(dpg.get_item_pos(item),[dpg.get_item_pos(item)[0] + dpg.get_item_rect_size(item)[0],dpg.get_item_pos(item)[1] + dpg.get_item_rect_size(item)[1]])
-	# 	for key, value in nodeBoxes.items():
-	# 		x1, y1 = value[0]
-	# 		x2, y2 = value[1]
-	# 		box = dpg.draw_rectangle(pmin=value[0],pmax=value[1],parent=drawLayer)
-	# 		if x1 <= pos[0] and pos[0] <= x2 and y1 <= pos[1] and pos[1] <= y2:
-	# 			print("Mouse position is inside the bounding box of key:", dpg.get_item_label(key))
-	# 			item = key
-	# 			while dpg.is_mouse_button_down(dpg.mvMouseButton_Left):
-	# 				dpg.set_item_pos(item,(dpg.get_mouse_pos()[0] - dpg.get_item_rect_size(item)[0] / 2,dpg.get_mouse_pos()[1] - dpg.get_item_rect_size(item)[1] / 2))
-	# 			break
-
 def createDPGNode(hdllnode,editor) -> int:
 	try:
 		return hdllnode.dpgID
@@ -146,8 +137,6 @@ def createDPGNode(hdllnode,editor) -> int:
 
 def getItemMiddle(item) -> tuple[float, float]:
 	return [get_item_pos(item)[0] + get_item_rect_size(item)[0] / 2,get_item_pos(item)[1] + get_item_rect_size(item)[1] / 2]
-
-
 
 # Test case
 if __name__ == "__main__":
@@ -178,24 +167,24 @@ if __name__ == "__main__":
 	testResult = Node("Example Result")
 	testResult.addDataField(dp.username.discord,"JCMS#0557")
 	root._children.append(testResult)
-	testResult2 = Node("Example Result 2")
-	testResult2.addDataField(dp.username.youtube,"JCMS_")
-	root._children.append(testResult2)
-	testResult3 = Node("Example Result 3")
-	testResult3.addDataField(dp.username.google,"JustCallMeSimon")
-	testResult4 = Node("Example Result 4")
-	testResult4.addDataField(dp.username.google,"JustCallMeSimon")
-	testResult5 = Node("Example Result 5")
-	testResult5.addDataField(dp.username.google,"JustCallMeSimon")
-	# testResult6 = Node("Example Result 3")
+	# testResult2 = Node("Example Result 2")
+	# testResult2.addDataField(dp.username.youtube,"JCMS_")
+	# root._children.append(testResult2)
+	# testResult3 = Node("Example Result 3")
+	# testResult3.addDataField(dp.username.google,"JustCallMeSimon")
+	# testResult4 = Node("Example Result 4")
+	# testResult4.addDataField(dp.username.google,"JustCallMeSimon")
+	# testResult5 = Node("Example Result 5")
+	# testResult5.addDataField(dp.username.google,"JustCallMeSimon")
+	# testResult6 = Node("Example Result 6")
 	# testResult6.addDataField(dp.username.google,"JustCallMeSimon")
-	# testResult7 = Node("Example Result 3")
+	# testResult7 = Node("Example Result 7")
 	# testResult7.addDataField(dp.username.google,"JustCallMeSimon")
-	testResult2._children.append(testResult3)
-	testResult2._children.append(testResult4)
-	testResult2._children.append(testResult5)
-	# testResult2._children.append(testResult6)
+	# testResult2._children.append(testResult3)
+	# testResult2._children.append(testResult4)
+	# testResult2._children.append(testResult5)
 	# testResult2._children.append(testResult7)
+	# testResult3._children.append(testResult6)
 	from dearpygui import dearpygui as dpg
 	dpg.create_context()
 	dpg.create_viewport(title="Hello World", width=1500, height=800)
@@ -204,7 +193,6 @@ if __name__ == "__main__":
 		rng = RelationalNodeUI(parent=wnd,width=600,height=600)
 		dpg.add_button(parent=wnd,label="repo",callback=lambda: rng.randomiseNodePositions())
 		dpg.add_button(parent=wnd,label="vis",callback=lambda: rng.visualize(root))
-		dpg.add_button(parent=wnd,label="end",callback=lambda: rng.end())
 	dpg.set_primary_window(wnd,True)
 	dpg.show_viewport()
 	dpg.start_dearpygui()
