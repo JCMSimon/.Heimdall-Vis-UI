@@ -3,6 +3,7 @@ from math import sqrt
 import time
 import threading
 from random import choice
+from sympy import symbols, Eq, solve
 
 class Link:
 	def __init__(self,node_1,node_2,node_editor,child_link=False,root_link=False) -> None:
@@ -12,7 +13,7 @@ class Link:
 		self.node_2 = createDPGNode(node_2,node_editor)
 
 	def draw(self,drawList):
-		#instead of drawing into the middle draw to the closest edge that is in direction of link. (idk how yet lmfao)
+		#TODO instead of drawing into the middle draw to the closest edge that is in direction of link. (idk how yet lmfao)
 		if self.child_link:
 			return draw_line(getItemMiddle(self.node_2),getItemMiddle(self.node_1),parent=drawList,color=(255,0,0),thickness=1)
 		elif self.root_link:
@@ -21,7 +22,19 @@ class Link:
 			return draw_arrow(getItemMiddle(self.node_2),getItemMiddle(self.node_1),parent=drawList,color=(255,255,255),thickness=3)
 
 	def change_length(self,delta,dl=None):
-		pass
+		# get positions
+		moveable_nodeID = [node for node in [self.node_2,self.node_1] if get_item_configuration(node)["draggable"]][0]
+		static_nodeID = self.node_2 if moveable_nodeID == self.node_1 else self.node_1
+		moveable_node_pos = get_item_pos(moveable_nodeID)
+		static_node_pos = get_item_pos(static_nodeID)
+		# calculate new positions
+		pos_if_delta_neg,pos_if_delta_pos = find_new_coords(moveable_node_pos[0],moveable_node_pos[1],static_node_pos[0],static_node_pos[1],delta)
+		# use new position
+		if (moveable_node_pos[0] > static_node_pos[0] and delta > 0 or moveable_node_pos[0] <= static_node_pos[0] and moveable_node_pos[0] < static_node_pos[0] and delta <= 0):
+			set_item_pos(moveable_nodeID,pos=pos_if_delta_pos)
+		elif (moveable_node_pos[0] > static_node_pos[0] or moveable_node_pos[0] < static_node_pos[0]):
+			set_item_pos(moveable_nodeID,pos=pos_if_delta_neg)
+		print("moved")
 
 	def get_length(self) -> int:
 		x,y = getItemMiddle(self.node_1)
@@ -46,17 +59,28 @@ class RelationalNodeUI:
 	def visualize(self,root) -> None:
 		self.createLinks(root)
 		self.randomiseNodePositions()
-		self.drawThread = threading.Thread(target=self.drawLinks)
+		# self.drawThread = threading.Thread(target=self.drawLinks)
 		self.dragThread = threading.Thread(target=self.handleDragging)
-		self.drawThread.start()
+		# self.drawThread.start()
 		self.dragThread.start()
-
-		while True:
-			for link in self.links:
-				if not link.child_link and not link.root_link:
-					link.change_length(1,dl=self.drawList)
-					time.sleep(0.05,)
-
+		for i in range(10):
+			while True:
+				for link in self.links:
+					delta = 50 - link.get_length()
+					link.change_length(delta,dl=self.drawList)
+				break
+			# while True:
+		# 	for link in self.links:
+		# 		if link.root_link:
+		# 			if link.get_length() < 200:
+		# 				link.change_length(1)
+		# 		elif link.child_link:
+		# 			if link.get_length() < 100:
+		# 				link.change_length(1)
+		# 		elif link.get_length() < 100:
+		# 			link.change_length(1)
+		# 		elif link.get_length() > 200:
+		# 			link.change_length(-1)
 
 	def randomiseNodePositions(self):
 		for nodeId in self.get_editor_nodes():
@@ -64,8 +88,8 @@ class RelationalNodeUI:
 			x = (origin[0] - (get_item_rect_size(nodeId)[0] / 2))
 			y = (origin[1] - (get_item_rect_size(nodeId)[1] / 2))
 			if get_item_label(nodeId) != "ROOT":
-				x += choice(range(-200,200))
-				y += choice(range(-200,200))
+				x += choice((-1,1))
+				y += choice((-1,1))
 			set_item_pos(nodeId,(x,y))
 
 	def createLinks(self,root) -> None:
@@ -86,11 +110,10 @@ class RelationalNodeUI:
 		return get_item_children(self.editor)[children_index := 1]
 
 	def drawLinks(self):
-		while True:
-			lista = [link.draw(self.drawList) for link in self.links]
-			time.sleep(1 / int(dpg.get_frame_rate()))
-			for l in lista:
-				dpg.delete_item(l)
+		list_of_drawn_elements = [link.draw(self.drawList) for link in self.links]
+		time.sleep(1 / int(dpg.get_frame_rate()))
+		for l in list_of_drawn_elements:
+			dpg.delete_item(l)
 		return
 
 	def handleDragging(self,isDragging = False):
@@ -98,13 +121,17 @@ class RelationalNodeUI:
 			time.sleep(0.016)
 			if dpg.is_mouse_button_dragging(button=dpg.mvMouseButton_Left,threshold=0.05) and not isDragging and not dpg.is_mouse_button_released(button=dpg.mvMouseButton_Left):
 				isDragging = True
+				# allow start dragging for 2 ms
+				drag_ts_timeout = time.time() + 0.02
 			elif isDragging and not dpg.is_mouse_button_down(button=dpg.mvMouseButton_Left):
 				isDragging = False
 			if isDragging:
 				if node := getNodeByPosition(self.get_editor_nodes(), dpg.get_drawing_mouse_pos()):
-					while dpg.is_mouse_button_down(button=dpg.mvMouseButton_Left):
-						# implement relative mouse delta shits
-						dpg.set_item_pos(node,dpg.get_drawing_mouse_pos())
+					if time.time() < drag_ts_timeout:
+						mouseDelta = (dpg.get_drawing_mouse_pos()[0] - dpg.get_item_pos(node)[0],dpg.get_drawing_mouse_pos()[1] - dpg.get_item_pos(node)[1])
+						while dpg.is_mouse_button_down(button=dpg.mvMouseButton_Left):
+							# implement relative mouse delta shits
+							dpg.set_item_pos(node,(dpg.get_drawing_mouse_pos()[0] - mouseDelta[0],dpg.get_drawing_mouse_pos()[1] - mouseDelta[1]))
 		return
 
 def getNodeByPosition(nodes,mousepos):
@@ -117,7 +144,6 @@ def getNodeByPosition(nodes,mousepos):
 			x2, y2 = nodePos[1]
 			if ( x1 > mousepos[0] or mousepos[0] > x2 or y1 > mousepos[1] or mousepos[1] > y2):
 				continue
-			print("Mouse position is inside the bounding box of key:", dpg.get_item_label(nodeID))
 			return nodeID
 	return None
 
@@ -137,6 +163,30 @@ def createDPGNode(hdllnode,editor) -> int:
 
 def getItemMiddle(item) -> tuple[float, float]:
 	return [get_item_pos(item)[0] + get_item_rect_size(item)[0] / 2,get_item_pos(item)[1] + get_item_rect_size(item)[1] / 2]
+
+def find_new_coords(moveable_x, moveable_y, static_x, static_y, delta):
+	# I dont really understand this math but smart ppl in discord.gg/math do.
+	# Calculate the line slope
+	start_time = time.time()
+	try:
+		line_slope = (static_y - moveable_y) / (static_x - moveable_x)
+	except ZeroDivisionError:
+		print(0)
+		if moveable_x == static_x:
+			return [moveable_x,moveable_y + delta]
+		elif moveable_y == static_y:
+			return [moveable_x + delta,moveable_y]
+	# Calculate the line y-intercept
+	line_intercept = moveable_y - line_slope * moveable_x
+	# Define the variables
+	new_x, new_y = symbols('new_x new_y')
+	# Define the equation of the line AB (y = mx + c)
+	line_eq = Eq(new_y, line_slope * new_x + line_intercept)
+	# Define the equation for the distance between points A and (x, y) ((x - old_x)^2 + (y - old_y)^2 = delta^2)
+	distance_eq = Eq((new_x - moveable_x) ** 2 + (new_y - moveable_y) ** 2, delta ** 2)
+	elapsed_time = time.time() - start_time
+	print(f"Calculation took {elapsed_time:.6f} seconds")
+	return solve((line_eq, distance_eq), (new_x, new_y))
 
 # Test case
 if __name__ == "__main__":
@@ -167,24 +217,24 @@ if __name__ == "__main__":
 	testResult = Node("Example Result")
 	testResult.addDataField(dp.username.discord,"JCMS#0557")
 	root._children.append(testResult)
-	# testResult2 = Node("Example Result 2")
-	# testResult2.addDataField(dp.username.youtube,"JCMS_")
-	# root._children.append(testResult2)
-	# testResult3 = Node("Example Result 3")
-	# testResult3.addDataField(dp.username.google,"JustCallMeSimon")
-	# testResult4 = Node("Example Result 4")
-	# testResult4.addDataField(dp.username.google,"JustCallMeSimon")
-	# testResult5 = Node("Example Result 5")
-	# testResult5.addDataField(dp.username.google,"JustCallMeSimon")
-	# testResult6 = Node("Example Result 6")
-	# testResult6.addDataField(dp.username.google,"JustCallMeSimon")
-	# testResult7 = Node("Example Result 7")
-	# testResult7.addDataField(dp.username.google,"JustCallMeSimon")
-	# testResult2._children.append(testResult3)
-	# testResult2._children.append(testResult4)
-	# testResult2._children.append(testResult5)
-	# testResult2._children.append(testResult7)
-	# testResult3._children.append(testResult6)
+	testResult2 = Node("Example Result 2")
+	testResult2.addDataField(dp.username.youtube,"JCMS_")
+	root._children.append(testResult2)
+	testResult3 = Node("Example Result 3")
+	testResult3.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult4 = Node("Example Result 4")
+	testResult4.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult5 = Node("Example Result 5")
+	testResult5.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult6 = Node("Example Result 6")
+	testResult6.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult7 = Node("Example Result 7")
+	testResult7.addDataField(dp.username.google,"JustCallMeSimon")
+	testResult2._children.append(testResult3)
+	testResult2._children.append(testResult4)
+	testResult2._children.append(testResult5)
+	testResult2._children.append(testResult7)
+	testResult3._children.append(testResult6)
 	from dearpygui import dearpygui as dpg
 	dpg.create_context()
 	dpg.create_viewport(title="Hello World", width=1500, height=800)
@@ -193,6 +243,9 @@ if __name__ == "__main__":
 		rng = RelationalNodeUI(parent=wnd,width=600,height=600)
 		dpg.add_button(parent=wnd,label="repo",callback=lambda: rng.randomiseNodePositions())
 		dpg.add_button(parent=wnd,label="vis",callback=lambda: rng.visualize(root))
+		dpg.add_button(parent=wnd,label="away",callback=lambda: rng.links[0].change_length(10,rng.drawList))
+		dpg.add_button(parent=wnd,label="close",callback=lambda: rng.links[0].change_length(-10,rng.drawList))
+		dpg.add_button(parent=wnd,label="len",callback=lambda: print(rng.links[0].get_length()))
 	dpg.set_primary_window(wnd,True)
 	dpg.show_viewport()
 	dpg.start_dearpygui()
